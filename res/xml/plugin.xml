@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<uexplugins>
+
+   <plugin
+        className="org.zywx.wbpalmstar.plugin.uexeditdialog.EUExEditDialog"
+        uexName="uexEditDialog" >
+        <method name="open" />
+        <method name="close" />
+        <method name="insert" />
+        <method name="cleanAll" />
+        <method name="getContent" />
+    </plugin>
+</uexplugins>
