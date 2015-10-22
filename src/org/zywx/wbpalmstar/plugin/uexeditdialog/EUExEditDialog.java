@@ -6,9 +6,10 @@ import java.util.Set;
 import org.zywx.wbpalmstar.engine.EBrowserView;
 import org.zywx.wbpalmstar.engine.universalex.EUExBase;
 import org.zywx.wbpalmstar.engine.universalex.EUExCallback;
-import android.app.ActivityGroup;
 import android.content.Context;
 import android.graphics.Color;
+import android.os.Bundle;
+import android.os.Message;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.TextWatcher;
@@ -32,14 +33,33 @@ public class EUExEditDialog extends EUExBase {
 	public static final String CALLBACK_GET_CONTENT = "uexEditDialog.cbGetContent";
 	public static final String ON_NUM = "uexEditDialog.onNum";
 	public static final String TAG = "uexEditDialog";
-	private ActivityGroup activityGroup;
+    private static final String BUNDLE_DATA = "data";
+    private static final int MSG_OPEN = 5;
+    private static final int MSG_CLOSE = 6;
+    private static final int MSG_INSERT = 7;
+    private static final int MSG_CLEAN_ALL = 8;
+    private static final int MSG_GET_CONTENT = 9;
+    private static final int MSG_CLEAN = 10;
 
 	private HashMap<Integer, EditText> viewMap = new HashMap<Integer, EditText>();
 
 	public EUExEditDialog(Context context, EBrowserView inParent) {
 		super(context, inParent);
-		activityGroup = (ActivityGroup) context;
 	}
+
+    public void open(String[] params) {
+        if (params == null || params.length < 11) {
+            errorCallback(0, 0, "error params!");
+            return;
+        }
+        Message msg = new Message();
+        msg.obj = this;
+        msg.what = MSG_OPEN;
+        Bundle bd = new Bundle();
+        bd.putStringArray(BUNDLE_DATA, params);
+        msg.setData(bd);
+        mHandler.sendMessage(msg);
+    }
 
 	/**
 	 * 实际形式:open(String opId,String x,String y,String w,String h,String
@@ -48,10 +68,7 @@ public class EUExEditDialog extends EUExBase {
 	 * 
 	 * @param params
 	 */
-	public void open(String[] params) {
-		if (params.length != 11) {
-			return;
-		}
+	public void openMsg(String[] params) {
 		int opId = 0;
 		int x = 0;
 		int y = 0;
@@ -77,15 +94,26 @@ public class EUExEditDialog extends EUExBase {
 		openEditDialog(opId, x, y, w, h, fontSize, fontColor, inputType, params[8], params[9], maxNum);
 	}
 
+    public void close(String[] params) {
+        if (params == null || params.length < 1) {
+            errorCallback(0, 0, "error params!");
+            return;
+        }
+        Message msg = new Message();
+        msg.obj = this;
+        msg.what = MSG_CLOSE;
+        Bundle bd = new Bundle();
+        bd.putStringArray(BUNDLE_DATA, params);
+        msg.setData(bd);
+        mHandler.sendMessage(msg);
+    }
+
 	/**
 	 * 实际形式:close(String opId)
 	 * 
 	 * @param params
 	 */
-	public void close(String[] params) {
-		if (params.length != 1) {
-			return;
-		}
+	public void closeMsg(String[] params) {
 		int opId = 0;
 		try {
 			opId = Integer.parseInt(params[0]);
@@ -95,29 +123,34 @@ public class EUExEditDialog extends EUExBase {
 			return;
 		}
 		final int finalOpId = opId;
-		activityGroup.runOnUiThread(new Runnable() {
-
-			@Override
-			public void run() {
-				EditText editText = viewMap.remove(finalOpId);
-				if (editText != null) {
-					hideSoftKeyboard(mContext, editText);
-					removeViewFromCurrentWindow(editText);
-					jsCallback(CALLBACK_CLOSE, finalOpId, EUExCallback.F_C_INT, EUExCallback.F_C_SUCCESS);
-				}
-			}
-		});
+        EditText editText = viewMap.remove(finalOpId);
+        if (editText != null) {
+            hideSoftKeyboard(mContext, editText);
+            removeViewFromCurrentWindow(editText);
+            jsCallback(CALLBACK_CLOSE, finalOpId, EUExCallback.F_C_INT, EUExCallback.F_C_SUCCESS);
+        }
 	}
+
+    public void insert(String[] params) {
+        if (params == null || params.length < 2) {
+            errorCallback(0, 0, "error params!");
+            return;
+        }
+        Message msg = new Message();
+        msg.obj = this;
+        msg.what = MSG_INSERT;
+        Bundle bd = new Bundle();
+        bd.putStringArray(BUNDLE_DATA, params);
+        msg.setData(bd);
+        mHandler.sendMessage(msg);
+    }
 
 	/**
 	 * 实际形式: insert(String opId,String text)
 	 * 
 	 * @param params
 	 */
-	public void insert(String[] params) {
-		if (params.length != 2) {
-			return;
-		}
+	public void insertMsg(String[] params) {
 		int opId = 0;
 		try {
 			opId = Integer.parseInt(params[0]);
@@ -131,42 +164,46 @@ public class EUExEditDialog extends EUExBase {
 		if (appendText == null) {
 			return;
 		}
-		activityGroup.runOnUiThread(new Runnable() {
-
-			@Override
-			public void run() {
-				EditText editText = viewMap.get(finalOpId);
-				if (editText != null) {
-					Editable edit = editText.getEditableText();// 获取EditText的文字
-					int maxLength = editText.getId();
-					int appendLength = appendText.length();
-					int index = editText.getSelectionStart();// 获取光标所在位置
-					edit.insert(index, appendText);// 在光标所在位置插入文字
-					// 如果添加文字加上现有的文字长度超过最大长度，则提示失败
-					if (maxLength > 0 && (edit.length() + appendLength > maxLength)) {
-						jsCallback(CALLBACK_INSERT, finalOpId, EUExCallback.F_C_INT, EUExCallback.F_C_FAILED);
-					} else {
-						jsCallback(CALLBACK_INSERT, finalOpId, EUExCallback.F_C_INT, EUExCallback.F_C_SUCCESS);
-					}
-					int currentLength = edit.length();
-					String js = SCRIPT_HEADER + "if(" + ON_NUM + "){" + ON_NUM + "(" + finalOpId + ","
-							+ (maxLength - currentLength) + ");}";
-					onCallback(js);
-				}
-			}// end run
-		});
-
+        EditText editText = viewMap.get(finalOpId);
+        if (editText != null) {
+            Editable edit = editText.getEditableText();// 获取EditText的文字
+            int maxLength = editText.getId();
+            int appendLength = appendText.length();
+            int index = editText.getSelectionStart();// 获取光标所在位置
+            edit.insert(index, appendText);// 在光标所在位置插入文字
+            // 如果添加文字加上现有的文字长度超过最大长度，则提示失败
+            if (maxLength > 0 && (edit.length() + appendLength > maxLength)) {
+                jsCallback(CALLBACK_INSERT, finalOpId, EUExCallback.F_C_INT, EUExCallback.F_C_FAILED);
+            } else {
+                jsCallback(CALLBACK_INSERT, finalOpId, EUExCallback.F_C_INT, EUExCallback.F_C_SUCCESS);
+            }
+            int currentLength = edit.length();
+            String js = SCRIPT_HEADER + "if(" + ON_NUM + "){" + ON_NUM + "(" + finalOpId + ","
+                    + (maxLength - currentLength) + ");}";
+            onCallback(js);
+        }
 	}
+
+    public void cleanAll(String[] params) {
+        if (params == null || params.length < 1) {
+            errorCallback(0, 0, "error params!");
+            return;
+        }
+        Message msg = new Message();
+        msg.obj = this;
+        msg.what = MSG_CLEAN_ALL;
+        Bundle bd = new Bundle();
+        bd.putStringArray(BUNDLE_DATA, params);
+        msg.setData(bd);
+        mHandler.sendMessage(msg);
+    }
 
 	/**
 	 * 实际形式:cleanAll(String opId)
 	 * 
 	 * @param params
 	 */
-	public void cleanAll(String[] params) {
-		if (params.length != 1) {
-			return;
-		}
+	public void cleanAllMsg(String[] params) {
 		int opId = 0;
 		try {
 			opId = Integer.parseInt(params[0]);
@@ -176,29 +213,33 @@ public class EUExEditDialog extends EUExBase {
 			return;
 		}
 		final int finalOpId = opId;
-		activityGroup.runOnUiThread(new Runnable() {
-
-			@Override
-			public void run() {
-				EditText editText = viewMap.get(finalOpId);
-				if (editText != null) {
-					editText.setText(null);
-					jsCallback(CALLBACK_CLEAN_ALL, finalOpId, EUExCallback.F_C_INT, EUExCallback.F_C_SUCCESS);
-				}
-			}
-		});
-
+        EditText editText = viewMap.get(finalOpId);
+        if (editText != null) {
+            editText.setText(null);
+            jsCallback(CALLBACK_CLEAN_ALL, finalOpId, EUExCallback.F_C_INT, EUExCallback.F_C_SUCCESS);
+        }
 	}
+
+    public void getContent(String[] params) {
+        if (params == null || params.length < 1) {
+            errorCallback(0, 0, "error params!");
+            return;
+        }
+        Message msg = new Message();
+        msg.obj = this;
+        msg.what = MSG_GET_CONTENT;
+        Bundle bd = new Bundle();
+        bd.putStringArray(BUNDLE_DATA, params);
+        msg.setData(bd);
+        mHandler.sendMessage(msg);
+    }
 
 	/**
 	 * 实际形式:getContent(String opId)
 	 * 
 	 * @param params
 	 */
-	public void getContent(String[] params) {
-		if (params.length != 1) {
-			return;
-		}
+	public void getContentMsg(String[] params) {
 		int opId = 0;
 		try {
 			opId = Integer.parseInt(params[0]);
@@ -207,84 +248,67 @@ public class EUExEditDialog extends EUExBase {
 			return;
 		}
 		final int finalOpId = opId;
-		activityGroup.runOnUiThread(new Runnable() {
-
-			@Override
-			public void run() {
-				EditText editText = viewMap.get(finalOpId);
-				if (editText != null) {
-					String content = editText.getText().toString();
-					jsCallback(CALLBACK_GET_CONTENT, finalOpId, EUExCallback.F_C_TEXT, content);
-				}
-			}
-		});
-
+        EditText editText = viewMap.get(finalOpId);
+        if (editText != null) {
+            String content = editText.getText().toString();
+            jsCallback(CALLBACK_GET_CONTENT, finalOpId, EUExCallback.F_C_TEXT, content);
+        }
 	}
 
 	@Override
 	protected boolean clean() {
-		activityGroup.runOnUiThread(new Runnable() {
-
-			@Override
-			public void run() {
-				Set<Integer> keySet = viewMap.keySet();
-				Iterator<Integer> iterator = keySet.iterator();
-				while (iterator.hasNext()) {
-					Integer key = iterator.next();
-					EditText editText = viewMap.get(key);
-					if (editText != null) {
-						hideSoftKeyboard(mContext, editText);
-						removeViewFromCurrentWindow(editText);
-					}
-					iterator.remove();
-				}
-			}
-		});
+        Message msg = new Message();
+        msg.obj = this;
+        msg.what = MSG_CLEAN;
+        mHandler.sendMessage(msg);
 		return true;
 	}
 
+    private void cleanMsg(){
+        Set<Integer> keySet = viewMap.keySet();
+        Iterator<Integer> iterator = keySet.iterator();
+        while (iterator.hasNext()) {
+            Integer key = iterator.next();
+            EditText editText = viewMap.get(key);
+            if (editText != null) {
+                hideSoftKeyboard(mContext, editText);
+                removeViewFromCurrentWindow(editText);
+            }
+            iterator.remove();
+        }
+    }
+
 	private void openEditDialog(final int opId, final int x, final int y, final int w, final int h, final int fontSize,
 			final int fontColor, final int inputType, final String inputHint, final String defaultText, final int maxNum) {
-		activityGroup.runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-				if (viewMap.get(opId) == null) {
-					EditText editText = createEditText(fontSize, fontColor, inputType, inputHint, defaultText, maxNum);
-					RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(w, h);
-					lp.leftMargin = x;
-					lp.topMargin = y;
-					addViewToCurrentWindow(editText, lp);
-					viewMap.put(opId, editText);
-					jsCallback(CALLBACK_OPEN, opId, EUExCallback.F_C_INT, EUExCallback.F_C_SUCCESS);
-					if (maxNum > 0) {
-						editText.addTextChangedListener(new TextWatcher() {
+        if (viewMap.get(opId) == null) {
+            EditText editText = createEditText(fontSize, fontColor, inputType, inputHint, defaultText, maxNum);
+            RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(w, h);
+            lp.leftMargin = x;
+            lp.topMargin = y;
+            addViewToCurrentWindow(editText, lp);
+            viewMap.put(opId, editText);
+            jsCallback(CALLBACK_OPEN, opId, EUExCallback.F_C_INT, EUExCallback.F_C_SUCCESS);
+            if (maxNum > 0) {
+                editText.addTextChangedListener(new TextWatcher() {
+                    @Override
+                    public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    }
 
-							@Override
-							public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-							}
-
-							@Override
-							public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-							}
-
-							@Override
-							public void afterTextChanged(Editable s) {
-								int currentLength = s.length();
-								String js = SCRIPT_HEADER + "if(" + ON_NUM + "){" + ON_NUM + "(" + opId + ","
-										+ (maxNum - currentLength) + ");}";
-								onCallback(js);
-							}
-
-						});
-					}
-				} else {
-					jsCallback(CALLBACK_OPEN, opId, EUExCallback.F_C_INT, EUExCallback.F_C_FAILED);
-				}
-			}
-		});
-
+                    @Override
+                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                    }
+                    @Override
+                    public void afterTextChanged(Editable s) {
+                        int currentLength = s.length();
+                        String js = SCRIPT_HEADER + "if(" + ON_NUM + "){" + ON_NUM + "(" + opId + ","
+                                + (maxNum - currentLength) + ");}";
+                        onCallback(js);
+                    }
+                });
+            }
+        } else {
+            jsCallback(CALLBACK_OPEN, opId, EUExCallback.F_C_INT, EUExCallback.F_C_FAILED);
+        }
 	}
 
 	/**
@@ -388,4 +412,35 @@ public class EUExEditDialog extends EUExBase {
 		InputMethodManager manager = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
 		manager.hideSoftInputFromWindow(editText.getWindowToken(), 0);
 	}
+
+    @Override
+    public void onHandleMessage(Message message) {
+        if(message == null){
+            return;
+        }
+        Bundle bundle=message.getData();
+        switch (message.what) {
+
+            case MSG_OPEN:
+                openMsg(bundle.getStringArray(BUNDLE_DATA));
+                break;
+            case MSG_CLOSE:
+                closeMsg(bundle.getStringArray(BUNDLE_DATA));
+                break;
+            case MSG_INSERT:
+                insertMsg(bundle.getStringArray(BUNDLE_DATA));
+                break;
+            case MSG_CLEAN_ALL:
+                cleanAllMsg(bundle.getStringArray(BUNDLE_DATA));
+                break;
+            case MSG_GET_CONTENT:
+                getContentMsg(bundle.getStringArray(BUNDLE_DATA));
+                break;
+            case MSG_CLEAN:
+                cleanMsg();
+                break;
+            default:
+                super.onHandleMessage(message);
+        }
+    }
 }

@@ -37,6 +37,13 @@
     <string name="appkey">82ae9d4e-557e-4491-b2b9-822b6b7b8d4d</string>
     <string name="push">true</string>
     <string name="appstatus">6D4F716AB6384036B4F0AC</string>
+    <string name="certificate_psw"></string>
+    <string name="widget_startup_report_host">http://newdc.appcan.cn/</string>
+    <string name="push_host">newpush.appcan.cn:1883</string>
+    <string name="bindUser_host">http://newpush.appcan.cn/</string>
+    <string name="analytics_host">http://newdc.appcan.cn/</string>
+    <string name="mam_host">http://newdc.appcan.cn/</string>
+    <string name="mam_push_host_and_port">newpush.appcan.cn:1883</string>
 
     <!-- platform myspace  use -->
     <string name="platform_myspace_app_center">应用中心</string>
