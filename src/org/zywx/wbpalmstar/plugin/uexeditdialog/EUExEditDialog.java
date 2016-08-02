@@ -47,7 +47,7 @@ public class EUExEditDialog extends EUExBase {
     private static final int MSG_CLEAN_ALL = 8;
     private static final int MSG_GET_CONTENT = 9;
     private static final int MSG_CLEAN = 10;
-    final String INVALID_CODE = "-1";
+    final String INVALID_CODE = null;
 
     private HashMap<Integer, EditText> viewMap = new HashMap<Integer, EditText>();
 
