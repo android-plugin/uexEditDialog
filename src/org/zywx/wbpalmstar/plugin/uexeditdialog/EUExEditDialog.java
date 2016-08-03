@@ -414,9 +414,6 @@ public class EUExEditDialog extends EUExBase {
             case MSG_OPEN:
                 openMsg(bundle.getStringArray(BUNDLE_DATA));
                 break;
-            case MSG_INSERT:
-                insertMsg(bundle.getStringArray(BUNDLE_DATA));
-                break;
             case MSG_CLEAN:
                 cleanMsg();
                 break;
