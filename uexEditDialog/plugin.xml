@@ -9,8 +9,7 @@
        <method name="create" />
         <method name="close" />
         <method name="insert" />
-       <!--4.0, 除opId-->
-        <method name="insertData" />
+
         <method name="cleanAll" />
         <method name="getContent" />
     </plugin>

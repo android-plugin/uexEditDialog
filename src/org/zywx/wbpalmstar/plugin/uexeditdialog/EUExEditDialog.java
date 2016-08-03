@@ -165,38 +165,23 @@ public class EUExEditDialog extends EUExBase {
         return false;
     }
 
-    public void insert(String[] params) {
+    public boolean insert(String[] params) {
         if (params == null || params.length < 2) {
             errorCallback(0, 0, "error params!");
-            return;
+            return false;
         }
-        Message msg = new Message();
-        msg.obj = this;
-        msg.what = MSG_INSERT;
-        Bundle bd = new Bundle();
-        bd.putStringArray(BUNDLE_DATA, params);
-        msg.setData(bd);
-        mHandler.sendMessage(msg);
-    }
-
-    /**
-     * 实际形式: insert(String opId,String text)
-     *
-     * @param params
-     */
-    public void insertMsg(String[] params) {
         int opId = 0;
         try {
             opId = Integer.parseInt(params[0]);
         } catch (NumberFormatException e) {
             e.printStackTrace();
             jsCallback(CALLBACK_INSERT, opId, EUExCallback.F_C_INT, EUExCallback.F_C_FAILED);
-            return;
+            return false;
         }
         final int finalOpId = opId;
         final String appendText = params[1];
-        if (appendText == null) {
-            return;
+        if (TextUtils.isEmpty(appendText)) {
+            return false;
         }
         EditText editText = viewMap.get(finalOpId);
         if (editText != null) {
@@ -216,48 +201,8 @@ public class EUExEditDialog extends EUExBase {
                     + (maxLength - currentLength) + ");}";
             onCallback(js);
         }
+        return true;
     }
-
-    public String insertData(String[] params) {
-        if(params.length < 1) {
-            return INVALID_CODE;
-        }
-        int opId = 0;
-        String text;
-        try {
-            JSONObject jsonObject = new JSONObject(params[0]);
-            opId = jsonObject.optInt("id", getRandomId());
-            text = jsonObject.getString("text");
-        } catch (JSONException e) {
-            return INVALID_CODE;
-        }
-
-        if (TextUtils.isEmpty(text)) {
-            return INVALID_CODE;
-        }
-        EditText editText = viewMap.get(opId);
-        if (editText != null) {
-            Editable edit = editText.getEditableText();// 获取EditText的文字
-            int maxLength = editText.getId();
-            int appendLength = text.length();
-            int index = editText.getSelectionStart();// 获取光标所在位置
-            edit.insert(index, text);// 在光标所在位置插入文字
-            // 如果添加文字加上现有的文字长度超过最大长度，则提示失败
-            if (maxLength > 0 && (edit.length() + appendLength > maxLength)) {
-                jsCallback(CALLBACK_INSERT, opId, EUExCallback.F_C_INT, EUExCallback.F_C_FAILED);
-            } else {
-                jsCallback(CALLBACK_INSERT, opId, EUExCallback.F_C_INT, EUExCallback.F_C_SUCCESS);
-            }
-            int currentLength = edit.length();
-            String js = SCRIPT_HEADER + "if(" + ON_NUM + "){" + ON_NUM + "(" + opId + ","
-                    + (maxLength - currentLength) + ");}";
-            onCallback(js);
-            return String.valueOf(opId);
-        }
-        return INVALID_CODE;
-    }
-
-
 
     public boolean cleanAll(String[] params) {
         int opId = 0;

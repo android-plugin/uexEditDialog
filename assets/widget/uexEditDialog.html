@@ -49,11 +49,7 @@
     }
 
     function insertData(){
-       var data = {
-                "id": editId,
-                "text": "这是5个字"
-            }
-        uexEditDialog.insertData(JSON.stringify(data));
+        uexEditDialog.insert(editId, "这是5个字");
     }
 
     function cleanAll(){
